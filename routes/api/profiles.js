@@ -2,17 +2,19 @@ const express = require("express");
 const router = express.Router();
 const passport = require("passport");
 const JWT = require("jsonwebtoken");
-const Profile = require("../../models/Profile");
-const User = require("../../models/User");
 const key = require("../../config/keys");
 // Load Validation Files
 const validateProfileInput = require("../../validation/profile");
 const validateExperienceInput = require("../../validation/experience");
 const validateEducationInput = require("../../validation/education");
+
+// Load Models
+const Profile = require("../../models/Profile");
+const User = require("../../models/User");
+
 // @routes GET api/usersAuth/test
 // desc test users route
 // public
-
 router.get("/test", (req, res) => res.json({ msg: "Profile is Working" }));
 
 // @routes GET api/profiles/
@@ -133,19 +135,25 @@ router.post(
           { user: req.user.id },
           { $set: profileFields },
           { new: true }
-        ).then(profile => res.json(profile));
+        )
+          .then(profile => res.json(profile))
+          .catch(err => res.status(404).json(err));
       } else {
         // create
 
         // Check for handle
-        Profile.findOne({ handle: profileFields.handle }).then(profile => {
-          if (profile) {
-            errors.handle = "Handle already exists";
-            res.status(400).json(errors);
-          }
-          // save
-          new Profile(profileFields).save().then(profile => res.json(profile));
-        });
+        Profile.findOne({ handle: profileFields.handle })
+          .then(profile => {
+            if (profile) {
+              errors.handle = "Handle already exists";
+              res.status(400).json(errors);
+            }
+            // save
+            new Profile(profileFields)
+              .save()
+              .then(profile => res.json(profile));
+          })
+          .catch(err => res.status(404).json(err));
       }
     });
   }
@@ -182,7 +190,8 @@ router.post(
         // add experience
         profile.experience.unshift(newExp);
         profile.save().then(profile => res.json(profile));
-      });
+      })
+      .catch(err => res.status(404).json(err));
   }
 );
 // @route   POST api/profile education
@@ -217,16 +226,65 @@ router.post(
         // add education
         profile.experience.unshift(newEdu);
         profile.save().then(profile => res.json(profile));
-      });
+      })
+      .catch(err => res.status(404).json(err));
   }
 );
 
+// @route   DELETE api/profile experinece
+// @desc    delete experinece from profile
+// @access  Private
+router.delete(
+  "/experience/:exp_id",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    Profile.findOne({ user: req.user.id })
+      .then(profile => {
+        //Remove Index
+        const removeIndex = profile.experience
+          .map(item => item.id)
+          .indexOf(req.params.exp_id);
+        // Splice Out
+        profile.experience.splice(removeIndex, 1);
+        profile.save().then(profile => res.json(profile));
+      })
+      .catch(err => res.status(404).json(err));
+  }
+);
 // @route   DELETE api/profile education
 // @desc    delete education from profile
 // @access  Private
 router.delete(
-  "/education",
+  "/education/:edu_id",
   passport.authenticate("jwt", { session: false }),
-  (req, res) => {}
+  (req, res) => {
+    Profile.findOne({ user: req.user.id })
+      .then(profile => {
+        //Remove Index
+        const removeIndex = profile.education
+          .map(item => item.id)
+          .indexOf(req.params.exp_id);
+        // Splice Out
+        profile.education.splice(removeIndex, 1);
+        profile.save().then(profile => res.json(profile));
+      })
+      .catch(err => res.status(404).json(err));
+  }
+);
+// @route   DELETE api/profile
+// @desc    delete profile and user
+// @access  Private
+router.delete(
+  "/",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    Profile.findOneAndRemove({ user: req.user.id })
+      .then(() => {
+        User.findOneAndRemove({ _id: req.user.id }).then(() => {
+          res.json({ success: true });
+        });
+      })
+      .catch(err => res.status(404).json(err));
+  }
 );
 module.exports = router;
