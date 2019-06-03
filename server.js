@@ -15,13 +15,16 @@ const app = express();
 // Body Parser Middlware
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
+
 // Passport Mildware
 app.use(passport.initialize());
+
 // Passport Config
 require("./config/passport")(passport);
+
 // connect db
 mongoose
-  .connect(db , {useNewUrlParser: true ,useFindAndModify: false})
+  .connect(db, { useNewUrlParser: true, useFindAndModify: false })
   .then(() => console.log("Connected to database successfully"))
   .catch(err => console.log(err));
 //------------------------------------------------//
@@ -39,3 +42,5 @@ app.use("/api/posts", posts);
 // ------------------------------------------------- //
 var port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server is up on the port ${port} ....`));
+
+module.exports = { app };

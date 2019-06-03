@@ -107,4 +107,17 @@ router.get(
     res.json({ id: req.user.id, name: req.user.name, email: req.user.email });
   }
 );
+// @routes post api/usersAuth/current
+// desc Return Current User
+// private
+
+router.get(
+  "/logout",
+  passport.authenticate("jwt", { session: false }),
+  (req, res) => {
+    req.logout();
+    res.redirect("/");
+    console.log(req.user);
+  }
+);
 module.exports = router;
